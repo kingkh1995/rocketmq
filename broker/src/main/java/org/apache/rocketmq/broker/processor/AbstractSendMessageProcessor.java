@@ -161,6 +161,8 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             response.setRemark("look message by offset failed, " + requestHeader.getOffset());
             return response;
         }
+        System.out.println("consumerSendMsgBack: " + msgExt);
+
 
         final String retryTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
         if (null == retryTopic) {
@@ -177,7 +179,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 maxReconsumeTimes = times;
             }
         }
-
+        System.out.println("consumerSendMsgBack: " + maxReconsumeTimes);
         boolean isDLQ = false;
         if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
@@ -211,7 +213,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
             msgExt.setDelayTimeLevel(delayLevel);
         }
-
+        boolean isPop = msgExt.getProperties().get(MessageConst.PROPERTY_FIRST_POP_TIME) != null;
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(newTopic);
         msgInner.setBody(msgExt.getBody());
@@ -225,11 +227,13 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         msgInner.setBornTimestamp(msgExt.getBornTimestamp());
         msgInner.setBornHost(msgExt.getBornHost());
         msgInner.setStoreHost(this.getStoreHost());
-        msgInner.setReconsumeTimes(msgExt.getReconsumeTimes() + 1);
+        msgInner.setReconsumeTimes(isPop ? msgExt.getReconsumeTimes() : msgExt.getReconsumeTimes() + 1);
 
         String originMsgId = MessageAccessor.getOriginMessageId(msgExt);
         MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId() : originMsgId);
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
+        System.out.println("consumerSendMsgBack: " + msgInner);
+
 
         boolean succeeded = false;
 

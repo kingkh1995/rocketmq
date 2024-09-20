@@ -108,6 +108,8 @@ public class PopReviveService extends ServiceThread {
 
     private boolean reviveRetry(PopCheckPoint popCheckPoint, MessageExt messageExt) {
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
+        System.out.println("reviveRetry: "+popCheckPoint.getTopic());
+        System.out.println("reviveRetry: "+messageExt);
         if (!popCheckPoint.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             msgInner.setTopic(KeyBuilder.buildPopRetryTopic(popCheckPoint.getTopic(), popCheckPoint.getCId(), brokerController.getBrokerConfig().isEnableRetryTopicV2()));
         } else {
@@ -129,6 +131,9 @@ public class PopReviveService extends ServiceThread {
         msgInner.getProperties().putAll(messageExt.getProperties());
         if (messageExt.getReconsumeTimes() == 0 || msgInner.getProperties().get(MessageConst.PROPERTY_FIRST_POP_TIME) == null) {
             msgInner.getProperties().put(MessageConst.PROPERTY_FIRST_POP_TIME, String.valueOf(popCheckPoint.getPopTime()));
+            msgInner.getProperties().putIfAbsent(MessageConst.PROPERTY_REAL_TOPIC, msgInner.getTopic());
+            msgInner.getProperties().putIfAbsent(MessageConst.PROPERTY_RETRY_TOPIC, messageExt.getTopic());
+            msgInner.getProperties().putIfAbsent(MessageConst.PROPERTY_ORIGIN_MESSAGE_ID, messageExt.getMsgId());
         }
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         addRetryTopicIfNotExist(msgInner.getTopic(), popCheckPoint.getCId());
